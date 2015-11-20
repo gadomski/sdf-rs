@@ -27,6 +27,8 @@ pub mod file;
 #[macro_use]
 pub mod result;
 
+pub use file::File;
+
 use std::ffi::CStr;
 use std::ptr;
 
