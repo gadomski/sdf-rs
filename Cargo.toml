@@ -5,5 +5,9 @@ authors = ["Pete Gadomski <pete.gadomski@gmail.com>"]
 
 [dependencies]
 docopt = "0.6"
+env_logger = "0.3"
 libc = "0.2"
+log = "0.3"
+peakbag = { git = "https://github.com/gadomski/peakbag.git" }
 rustc-serialize = "0.3"
+sdc = { git = "https://github.com/gadomski/sdc-rs.git" }

@@ -11,6 +11,10 @@
 #![deny(box_pointers, fat_ptr_transmutes, missing_copy_implementations, missing_debug_implementations, missing_docs, trivial_casts, trivial_numeric_casts, unused_extern_crates, unused_import_braces, unused_qualifications, unused_results, variant_size_differences)]
 
 extern crate libc;
+#[macro_use]
+extern crate log;
+extern crate peakbag;
+extern crate sdc;
 
 macro_rules! sdftry {
     ($expr:expr) => {{
@@ -21,8 +25,9 @@ macro_rules! sdftry {
     }}
 }
 
-mod ffi;
+pub mod convert;
 pub mod error;
+mod ffi;
 pub mod file;
 #[macro_use]
 pub mod result;

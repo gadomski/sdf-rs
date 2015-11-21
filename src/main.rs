@@ -1,6 +1,7 @@
 //! Executable toolkit for working with sdf files.
 
 extern crate docopt;
+extern crate env_logger;
 extern crate rustc_serialize;
 extern crate sdf;
 
@@ -10,37 +11,40 @@ use std::u32;
 use docopt::Docopt;
 
 use sdf::error::SdfError;
-use sdf::file::Channel;
 
 const USAGE: &'static str = "
 Read and process .sdf files.
 
 Usage:
+    sdf block <infile> <index> \
+                             <block>
+    sdf convert <infile> <outfile>
     sdf info <infile> \
                              [--brief]
     sdf record <infile> <index>
-    sdf block <infile> \
-                             <index> <channel>
     sdf (-h | --help)
-    sdf --version
+    \
+                             sdf --version
 
 Options:
+    -h --help   Show this screen.
     \
-                             -h --help   Show this screen.
-    --version   Show sdf-rs and sdfifc \
-                             library versions.
-    --brief     Only provide file information from \
-                             the header, do not inspect the file itself.
+                             --version   Show sdf-rs and sdfifc library versions.
+    --brief     \
+                             Only provide file information from the header, do not inspect the \
+                             file itself.
 ";
 
 #[derive(Debug, RustcDecodable)]
 struct Args {
     flag_brief: bool,
     flag_version: bool,
-    arg_channel: u32,
+    arg_block: usize,
     arg_index: u32,
     arg_infile: String,
+    arg_outfile: String,
     cmd_block: bool,
+    cmd_convert: bool,
     cmd_info: bool,
     cmd_record: bool,
 }
@@ -52,6 +56,7 @@ fn error_exit(message: &str, err: SdfError) -> ! {
 
 #[cfg_attr(test, allow(dead_code))]
 fn main() {
+    env_logger::init().unwrap();
     let args: Args = Docopt::new(USAGE)
                          .and_then(|d| d.decode())
                          .unwrap_or_else(|e| e.exit());
@@ -66,6 +71,12 @@ fn main() {
                  library_version.api_minor);
         println!("sdfifc build version: {}", library_version.build_version);
         println!("    sdfifc build tag: {}", library_version.build_tag);
+        exit(0);
+    }
+
+    if args.cmd_convert {
+        sdf::File::convert(args.arg_infile, args.arg_outfile)
+            .unwrap_or_else(|e| error_exit("Problem when converting file", e));
         exit(0);
     }
 
@@ -120,16 +131,14 @@ fn main() {
                            e)
             });
         let record = file.read().unwrap_or_else(|e| error_exit("Unable to read point", e));
-        let channel = Channel::from_u32(args.arg_channel)
-                          .unwrap_or_else(|e| error_exit("Could not find channel", e));
-        let ref block = record.blocks.get(&channel).unwrap_or_else(|| {
-            println!("ERROR: No block for channel '{}' at index {}",
-                     channel,
-                     args.arg_index);
+        if args.arg_block < record.blocks.len() {
+            println!("{}", record.blocks[args.arg_block]);
+            exit(0);
+        } else {
+            println!("ERROR: record only has {} blocks", record.blocks.len());
             exit(1);
-        });
-        println!("{}", block);
-        exit(0);
+        }
     }
+
     unreachable!()
 }

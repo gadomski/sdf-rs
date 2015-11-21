@@ -1,8 +1,8 @@
 //! Public, safe wrappers around `fwifc_file` and its member functions.
 
-use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::fmt;
+use std::iter::{Iterator, IntoIterator};
 use std::ptr;
 
 use libc::c_char;
@@ -183,7 +183,7 @@ impl File {
                                &mut sbl_count,
                                &mut sbl_size,
                                &mut sbl));
-            let mut blocks = HashMap::with_capacity(sbl_count as usize);
+            let mut blocks = Vec::with_capacity(sbl_count as usize);
             for i in 0..sbl_count {
                 let ref block = *sbl.offset(i as isize);
                 let mut samples = Vec::with_capacity(block.sample_count as usize);
@@ -191,16 +191,11 @@ impl File {
                     samples.push(*block.sample.offset(j as isize));
                 }
                 let channel = try!(Channel::from_u32(block.channel));
-                let result = blocks.insert(channel,
-                                           Block {
-                                               time_sosbl: block.time_sosbl,
-                                               channel: channel,
-                                               samples: samples,
-                                           });
-                if result.is_some() {
-                    panic!("This record has two blocks with the same channel: {}",
-                           channel);
-                }
+                blocks.push(Block {
+                    time_sosbl: block.time_sosbl,
+                    channel: channel,
+                    samples: samples,
+                });
             }
             Ok(Record {
                 time_sorg: time_sorg,
@@ -302,6 +297,35 @@ impl Drop for File {
     }
 }
 
+impl IntoIterator for File {
+    type Item = Record;
+    type IntoIter = FileIterator;
+    fn into_iter(mut self) -> Self::IntoIter {
+        self.reindex().unwrap();
+        FileIterator { file: self }
+    }
+}
+
+/// An iterator over a file.
+///
+/// Note that this iterator will panic on any underlying sdfifc library errors. If you need more
+/// robust error handling, do the iteration yourself.
+#[derive(Debug)]
+pub struct FileIterator {
+    file: File,
+}
+
+impl Iterator for FileIterator {
+    type Item = Record;
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.file.read() {
+            Ok(record) => Some(record),
+            Err(SdfError::EndOfFile(_)) => None,
+            Err(err) => panic!("Error when iterating through the file: {}", err),
+        }
+    }
+}
+
 /// The timestamp of the start of the sample block can be relative or absolute.
 ///
 /// If absolute, large values could lose precision.
@@ -330,7 +354,7 @@ pub struct FileInfo {
     pub sampling_time: f64,
     /// True if this file's time was synchronized with GPS time.
     pub gps_synchronized: bool,
-    /// The numbe rof mirror facets in the intrument.
+    /// The number of mirror facets in the intrument.
     pub num_facets: u16,
 }
 
@@ -408,7 +432,7 @@ pub struct Record {
     /// The mirror fact number.
     pub facet: u16,
     /// The size of sample block in bytes.
-    pub blocks: HashMap<Channel, Block>,
+    pub blocks: Vec<Block>,
 }
 
 impl fmt::Display for Record {
@@ -430,7 +454,7 @@ impl fmt::Display for Record {
                self.facet,
                self.blocks.len())
     }
-        }
+}
 
 /// A sample block.
 #[derive(Debug)]
@@ -458,7 +482,7 @@ impl fmt::Display for Block {
         }
         Ok(())
     }
-        }
+}
 
 /// Information from one detector or set of detectors.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -495,7 +519,7 @@ impl Channel {
             _ => Err(SdfError::InvalidChannel(n)),
         }
     }
-        }
+}
 
 impl fmt::Display for Channel {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -507,19 +531,15 @@ impl fmt::Display for Channel {
         };
         write!(f, "{}", name)
     }
-        }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use error::SdfError;
-
     #[test]
     fn open_throws_on_bad_filename() {
-        let err = File::open("notafile.sdf").unwrap_err();
-        assert_eq!(SdfError::UnknownException("Unable to open file \"notafile.sdf\"".to_string()),
-                   err);
+        assert!(File::open("notafile.sdf").is_err());
     }
 
     #[test]
