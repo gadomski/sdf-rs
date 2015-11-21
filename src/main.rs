@@ -9,6 +9,8 @@ use std::u32;
 
 use docopt::Docopt;
 
+use sdf::error::SdfError;
+
 const USAGE: &'static str = "
 Read and process .sdf files.
 
@@ -42,6 +44,11 @@ struct Args {
     cmd_record: bool,
 }
 
+fn error_exit(message: &str, err: SdfError) -> ! {
+    println!("ERROR: {}: {}", message, err);
+    exit(1);
+}
+
 #[cfg_attr(test, allow(dead_code))]
 fn main() {
     let args: Args = Docopt::new(USAGE)
@@ -50,8 +57,7 @@ fn main() {
 
     if args.flag_version {
         let library_version = sdf::library_version().unwrap_or_else(|e| {
-            println!("ERROR: Unable to get library version: {}", e);
-            exit(1);
+            error_exit("Unable to get library version", e)
         });
         println!("      sdf-rs version: {}", env!("CARGO_PKG_VERSION"));
         println!("  sdfifc api version: {}.{}",
@@ -62,22 +68,14 @@ fn main() {
         exit(0);
     }
 
-    let mut file = sdf::File::open(args.arg_infile.clone()).unwrap_or_else(|e| {
-        println!("ERROR: Unable to open file: {}", e);
-        exit(1)
-    });
+    let mut file = sdf::File::open(args.arg_infile.clone())
+                       .unwrap_or_else(|e| error_exit("Unable to open file", e));
     if !args.flag_brief {
-        file.reindex().unwrap_or_else(|e| {
-            println!("ERROR: Unable to reindex file: {}", e);
-            exit(1);
-        });
+        file.reindex().unwrap_or_else(|e| error_exit("Unable to reindex file", e));
     }
 
     if args.cmd_info {
-        let info = file.info().unwrap_or_else(|e| {
-            println!("ERROR: Unable to retrieve file info: {}", e);
-            exit(1);
-        });
+        let info = file.info().unwrap_or_else(|e| error_exit("Unable to retrieve file info", e));
         println!("      instrument: {}", info.instrument);
         println!("          serial: {}", info.serial);
         println!("           epoch: {}", info.epoch);
@@ -89,53 +87,38 @@ fn main() {
             exit(0);
         }
 
-        let record = file.read().unwrap_or_else(|e| {
-            println!("ERROR: Unable to read first point: {}", e);
-            exit(1);
-        });
+        let record = file.read().unwrap_or_else(|e| error_exit("Unable to read first point", e));
         let start_time = record.time_external;
         println!("      start time: {}", start_time);
-        file.seek(u32::MAX).unwrap_or_else(|e| {
-            println!("ERROR: Unable to seek to end of file: {}", e);
-            exit(1);
-        });
-        let record = file.read().unwrap_or_else(|e| {
-            println!("ERROR: Unable to read last point: {}", e);
-            exit(1);
-        });
+        file.seek(u32::MAX).unwrap_or_else(|e| error_exit("Unable to seek to end of file", e));
+        let record = file.read().unwrap_or_else(|e| error_exit("Unable to read last point", e));
         let end_time = record.time_external;
         println!("        end time: {}", end_time);
-        let npoints = file.tell().unwrap_or_else(|e| {
-            println!("ERROR: Unable to get index of next record: {}", e);
-            exit(1);
-        });
+        let npoints = file.tell()
+                          .unwrap_or_else(|e| error_exit("Unable to get index of next record", e));
         println!("number of points: {}", npoints);
 
         exit(0);
     }
 
     if args.cmd_record {
-        file.seek(args.arg_index).unwrap_or_else(|e| {
-            println!("ERROR: Unable to seek to index {}: {}", args.arg_index, e);
-            exit(1);
-        });
-        let record = file.read().unwrap_or_else(|e| {
-            println!("ERROR: Unable to read point: {}", e);
-            exit(1);
-        });
+        file.seek(args.arg_index)
+            .unwrap_or_else(|e| {
+                error_exit(&format!("Unable to seek to index {}", args.arg_index)[..],
+                           e)
+            });
+        let record = file.read().unwrap_or_else(|e| error_exit("Unable to read point", e));
         println!("{}", record);
         exit(0);
     }
 
     if args.cmd_block {
-        file.seek(args.arg_index).unwrap_or_else(|e| {
-            println!("ERROR: Unable to seek to index {}: {}", args.arg_index, e);
-            exit(1);
-        });
-        let record = file.read().unwrap_or_else(|e| {
-            println!("ERROR: Unable to read point: {}", e);
-            exit(1);
-        });
+        file.seek(args.arg_index)
+            .unwrap_or_else(|e| {
+                error_exit(&format!("Unable to seek to index {}", args.arg_index)[..],
+                           e)
+            });
+        let record = file.read().unwrap_or_else(|e| error_exit("Unable to read point", e));
         let ref block = record.blocks[args.arg_block];
         println!("{}", block);
         exit(0);
