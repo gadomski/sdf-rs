@@ -10,6 +10,7 @@ use std::u32;
 use docopt::Docopt;
 
 use sdf::error::SdfError;
+use sdf::file::Channel;
 
 const USAGE: &'static str = "
 Read and process .sdf files.
@@ -19,7 +20,7 @@ Usage:
                              [--brief]
     sdf record <infile> <index>
     sdf block <infile> \
-                             <index> <block>
+                             <index> <channel>
     sdf (-h | --help)
     sdf --version
 
@@ -36,7 +37,7 @@ Options:
 struct Args {
     flag_brief: bool,
     flag_version: bool,
-    arg_block: usize,
+    arg_channel: u32,
     arg_index: u32,
     arg_infile: String,
     cmd_block: bool,
@@ -119,7 +120,14 @@ fn main() {
                            e)
             });
         let record = file.read().unwrap_or_else(|e| error_exit("Unable to read point", e));
-        let ref block = record.blocks[args.arg_block];
+        let channel = Channel::from_u32(args.arg_channel)
+                          .unwrap_or_else(|e| error_exit("Could not find channel", e));
+        let ref block = record.blocks.get(&channel).unwrap_or_else(|| {
+            println!("ERROR: No block for channel '{}' at index {}",
+                     channel,
+                     args.arg_index);
+            exit(1);
+        });
         println!("{}", block);
         exit(0);
     }

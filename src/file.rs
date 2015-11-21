@@ -1,5 +1,6 @@
 //! Public, safe wrappers around `fwifc_file` and its member functions.
 
+use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::fmt;
 use std::ptr;
@@ -147,6 +148,12 @@ impl File {
 
     /// Reads a sample data record from the file.
     ///
+    /// # Panics
+    ///
+    /// Panics if the underlying sdfifc library returns a record with two blocks with the same
+    /// channel. We assume that this can't happen, and so we panic (rather than returning an error)
+    /// to indicate that this is a very exceptional case.
+    ///
     /// # Examples
     ///
     /// ```
@@ -176,18 +183,24 @@ impl File {
                                &mut sbl_count,
                                &mut sbl_size,
                                &mut sbl));
-            let mut blocks = Vec::with_capacity(sbl_count as usize);
+            let mut blocks = HashMap::with_capacity(sbl_count as usize);
             for i in 0..sbl_count {
                 let ref block = *sbl.offset(i as isize);
                 let mut samples = Vec::with_capacity(block.sample_count as usize);
                 for j in 0..block.sample_count {
                     samples.push(*block.sample.offset(j as isize));
                 }
-                blocks.push(Block {
-                    time_sosbl: block.time_sosbl,
-                    channel: try!(Channel::from_u32(block.channel)),
-                    samples: samples,
-                })
+                let channel = try!(Channel::from_u32(block.channel));
+                let result = blocks.insert(channel,
+                                           Block {
+                                               time_sosbl: block.time_sosbl,
+                                               channel: channel,
+                                               samples: samples,
+                                           });
+                if result.is_some() {
+                    panic!("This record has two blocks with the same channel: {}",
+                           channel);
+                }
             }
             Ok(Record {
                 time_sorg: time_sorg,
@@ -395,7 +408,7 @@ pub struct Record {
     /// The mirror fact number.
     pub facet: u16,
     /// The size of sample block in bytes.
-    pub blocks: Vec<Block>,
+    pub blocks: HashMap<Channel, Block>,
 }
 
 impl fmt::Display for Record {
@@ -448,7 +461,7 @@ impl fmt::Display for Block {
         }
 
 /// Information from one detector or set of detectors.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Channel {
     /// The high channel.
     High,
