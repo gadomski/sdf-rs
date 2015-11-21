@@ -118,9 +118,9 @@ impl File {
     /// # Examples
     ///
     /// ```
-    /// use sdf::file::{File, CalibrationTableKind};
+    /// use sdf::file::{File, CalibrationTableKind, Channel};
     /// let mut file = File::open("data/110630_174316.sdf").unwrap();
-    /// let calibration = file.calibration(CalibrationTableKind::Amplitude(0)).unwrap();
+    /// let calibration = file.calibration(CalibrationTableKind::Amplitude(Channel::High)).unwrap();
     /// ```
     pub fn calibration(&mut self, kind: CalibrationTableKind) -> Result<Calibration> {
         unsafe {
@@ -185,7 +185,7 @@ impl File {
                 }
                 blocks.push(Block {
                     time_sosbl: block.time_sosbl,
-                    channel: block.channel,
+                    channel: try!(Channel::from_u32(block.channel)),
                     samples: samples,
                 })
             }
@@ -337,9 +337,9 @@ pub struct Calibration {
 #[derive(Clone, Copy, Debug)]
 pub enum CalibrationTableKind {
     /// An amplitude calibration table.
-    Amplitude(u8),
+    Amplitude(Channel),
     /// A range calibration table.
-    Range(u8),
+    Range(Channel),
 }
 
 impl CalibrationTableKind {
@@ -350,17 +350,27 @@ impl CalibrationTableKind {
     /// # Examples
     ///
     /// ```
-    /// use sdf::file::CalibrationTableKind;
-    /// assert_eq!(0, CalibrationTableKind::Amplitude(0).as_u16().unwrap());
-    /// assert_eq!(3, CalibrationTableKind::Range(1).as_u16().unwrap());
-    /// assert!(CalibrationTableKind::Amplitude(2).as_u16().is_err());
+    /// use sdf::file::{CalibrationTableKind, Channel};
+    /// assert_eq!(0, CalibrationTableKind::Amplitude(Channel::High).as_u16().unwrap());
+    /// assert_eq!(3, CalibrationTableKind::Range(Channel::Low).as_u16().unwrap());
+    /// assert!(CalibrationTableKind::Amplitude(Channel::Saturation).as_u16().is_err());
     /// ```
     pub fn as_u16(&self) -> Result<u16> {
         match *self {
-            CalibrationTableKind::Amplitude(n) if n == 0 || n == 1 => Ok(n as u16),
-            CalibrationTableKind::Range(n) if n == 0 || n == 1 => Ok((n + 2) as u16),
-            CalibrationTableKind::Amplitude(n) | CalibrationTableKind::Range(n) =>
-                Err(SdfError::InvalidChannel(n)),
+            CalibrationTableKind::Amplitude(channel) => {
+                match channel {
+                    Channel::High => Ok(0),
+                    Channel::Low => Ok(1),
+                    _ => Err(SdfError::NoCalibrationTableForChannel(channel)),
+                }
+            }
+            CalibrationTableKind::Range(channel) => {
+                match channel {
+                    Channel::High => Ok(2),
+                    Channel::Low => Ok(3),
+                    _ => Err(SdfError::NoCalibrationTableForChannel(channel)),
+                }
+            }
         }
     }
 }
@@ -407,7 +417,7 @@ impl fmt::Display for Record {
                self.facet,
                self.blocks.len())
     }
-}
+        }
 
 /// A sample block.
 #[derive(Debug)]
@@ -415,7 +425,7 @@ pub struct Block {
     /// The start of the sample block, in seconds.
     pub time_sosbl: f64,
     /// The channel: 0:high, 1:low, 2:saturation, 3:reference.
-    pub channel: u32,
+    pub channel: Channel,
     /// The actual data samples.
     pub samples: Vec<u16>,
 }
@@ -435,7 +445,56 @@ impl fmt::Display for Block {
         }
         Ok(())
     }
+        }
+
+/// Information from one detector or set of detectors.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Channel {
+    /// The high channel.
+    High,
+    /// The low channel.
+    Low,
+    /// The saturation channel.
+    Saturation,
+    /// The reference channel.
+    Reference,
 }
+
+impl Channel {
+    /// Returns the appropriate channel for the given u32.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use sdf::file::Channel;
+    /// assert_eq!(Channel::High, Channel::from_u32(0).unwrap());
+    /// assert_eq!(Channel::Low, Channel::from_u32(1).unwrap());
+    /// assert_eq!(Channel::Saturation, Channel::from_u32(2).unwrap());
+    /// assert_eq!(Channel::Reference, Channel::from_u32(3).unwrap());
+    /// assert!(Channel::from_u32(4).is_err());
+    /// ```
+    pub fn from_u32(n: u32) -> Result<Channel> {
+        match n {
+            0 => Ok(Channel::High),
+            1 => Ok(Channel::Low),
+            2 => Ok(Channel::Saturation),
+            3 => Ok(Channel::Reference),
+            _ => Err(SdfError::InvalidChannel(n)),
+        }
+    }
+        }
+
+impl fmt::Display for Channel {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Channel::High => "high",
+            Channel::Low => "low",
+            Channel::Saturation => "saturation",
+            Channel::Reference => "reference",
+        };
+        write!(f, "{}", name)
+    }
+        }
 
 #[cfg(test)]
 mod tests {
@@ -466,7 +525,7 @@ mod tests {
     #[test]
     fn file_calibration() {
         let mut file = File::open("data/110630_174316.sdf").unwrap();
-        let calib = file.calibration(CalibrationTableKind::Amplitude(0)).unwrap();
+        let calib = file.calibration(CalibrationTableKind::Amplitude(Channel::High)).unwrap();
         assert_eq!(256, calib.abscissa.len());
         assert_eq!(calib.ordinate.len(), calib.abscissa.len());
     }

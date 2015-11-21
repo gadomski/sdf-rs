@@ -10,6 +10,8 @@ use libc::c_char;
 
 use ffi::fwifc_get_last_error;
 
+use file::Channel;
+
 /// Our error type.
 #[derive(Debug, PartialEq)]
 pub enum SdfError {
@@ -18,12 +20,14 @@ pub enum SdfError {
     /// The end of an sdf file has been reached.
     EndOfFile(String),
     /// The specified channel is invalid.
-    InvalidChannel(u8),
+    InvalidChannel(u32),
     /// The sdf file is missing an index.
     ///
     /// Some file-based operations, namely reads and seeks, require an index. Use `File::reindex()`
     /// to create one.
     MissingIndex(String),
+    /// There is no calibration table for the given channel.
+    NoCalibrationTableForChannel(Channel),
     /// The given function is unimplemented by sdfifc.
     NotImplemented(String),
     /// A wrapper around `std::ffi::NulError`.
@@ -79,6 +83,7 @@ impl error::Error for SdfError {
             SdfError::EndOfFile(_) => "end of file",
             SdfError::InvalidChannel(_) => "invalid channel",
             SdfError::MissingIndex(_) => "missing index",
+            SdfError::NoCalibrationTableForChannel(_) => "no calibration table for channel",
             SdfError::NotImplemented(_) => "not implemented",
             SdfError::Nul(ref err) => err.description(),
             SdfError::Runtime(_) => "runtime error",
@@ -106,6 +111,8 @@ impl fmt::Display for SdfError {
             SdfError::EndOfFile(ref msg) => write!(f, "End of file: {}", msg),
             SdfError::InvalidChannel(u8) => write!(f, "Invalid channel: {}", u8),
             SdfError::MissingIndex(ref msg) => write!(f, "Missing index: {}", msg),
+            SdfError::NoCalibrationTableForChannel(channel) =>
+                write!(f, "No calibration table for channel: {}", channel),
             SdfError::NotImplemented(ref msg) => write!(f, "Not implemented: {}", msg),
             SdfError::Nul(ref err) => write!(f, "Nul error: {}", err),
             SdfError::Runtime(ref msg) => write!(f, "Runtime error: {}", msg),
