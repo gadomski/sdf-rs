@@ -43,11 +43,9 @@ impl File {
     /// # Examples
     ///
     /// ```
-    /// use std::fs::remove_file;
     /// use sdf::file::File;
     /// let mut file = File::open("data/110630_174316.sdf").unwrap();
     /// file.reindex().unwrap();
-    /// remove_file("data/110630_174316.idx").unwrap();
     /// ```
     pub fn reindex(&mut self) -> Result<()> {
         unsafe { Ok(sdftry!(fwifc_reindex(self.handle))) }
@@ -151,12 +149,10 @@ impl File {
     /// # Examples
     ///
     /// ```
-    /// # use std::fs::remove_file;
     /// use sdf::file::File;
     /// let mut file = File::open("data/110630_174316.sdf").unwrap();
     /// file.reindex().unwrap();
     /// let record = file.read().unwrap();
-    /// # remove_file("data/110630_174316.idx").unwrap();
     /// ```
     pub fn read(&mut self) -> Result<Record> {
         unsafe {
@@ -213,24 +209,20 @@ impl File {
     /// Seeks to the first record.
     ///
     /// ```
-    /// # use std::fs::remove_file;
     /// use sdf::file::File;
     /// let mut file = File::open("data/110630_174316.sdf").unwrap();
     /// file.reindex().unwrap();
     /// file.seek(1).unwrap();
-    /// # remove_file("data/110630_174316.idx").unwrap();
     /// ```
     ///
     /// Seeks to the end of the file.
     ///
     /// ```
-    /// # use std::fs::remove_file;
     /// use std::u32;
     /// use sdf::file::File;
     /// let mut file = File::open("data/110630_174316.sdf").unwrap();
     /// file.reindex().unwrap();
     /// file.seek(u32::MAX).unwrap();
-    /// # remove_file("data/110630_174316.idx").unwrap();
     /// ```
     pub fn seek(&mut self, index: u32) -> Result<()> {
         unsafe { Ok(sdftry!(fwifc_seek(self.handle, index))) }
@@ -241,12 +233,10 @@ impl File {
     /// # Examples
     ///
     /// ```
-    /// # use std::fs::remove_file;
     /// use sdf::file::File;
     /// let mut file = File::open("data/110630_174316.sdf").unwrap();
     /// file.reindex().unwrap();
     /// file.seek_time(1.0).unwrap();
-    /// # remove_file("data/110630_174316.idx").unwrap();
     /// ```
     pub fn seek_time(&mut self, time: f64) -> Result<()> {
         unsafe { Ok(sdftry!(fwifc_seek_time(self.handle, time))) }
@@ -259,12 +249,10 @@ impl File {
     /// # Examples
     ///
     /// ```
-    /// # use std::fs::remove_file;
     /// use sdf::file::File;
     /// let mut file = File::open("data/110630_174316.sdf").unwrap();
     /// file.reindex().unwrap();
     /// file.seek_time_external(1.0).unwrap();
-    /// # remove_file("data/110630_174316.idx").unwrap();
     /// ```
     pub fn seek_time_external(&mut self, time: f64) -> Result<()> {
         unsafe { Ok(sdftry!(fwifc_seek_time_external(self.handle, time))) }
@@ -275,14 +263,12 @@ impl File {
     /// # Examples
     ///
     /// ```
-    /// # use std::fs::remove_file;
     /// use sdf::file::File;
     /// let mut file = File::open("data/110630_174316.sdf").unwrap();
     /// file.reindex().unwrap();
     /// assert_eq!(1, file.tell().unwrap());
     /// file.read().unwrap();
     /// assert_eq!(2, file.tell().unwrap());
-    /// # remove_file("data/110630_174316.idx").unwrap();
     /// ```
     pub fn tell(&mut self) -> Result<u32> {
         let mut index = 0u32;
