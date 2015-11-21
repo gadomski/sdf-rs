@@ -15,24 +15,28 @@ Read and process .sdf files.
 Usage:
     sdf info <infile> \
                              [--brief]
+    sdf record <infile> <index>
     sdf (-h | --help)
-    sdf --version
+    \
+                             sdf --version
 
 Options:
-    -h \
-                             --help   Show this screen.
-    --version   Show sdf-rs and sdfifc \
-                             library versions.
-    --brief     Only provide file information from \
-                             the header, do not inspect the file itself.
+    -h --help   Show this screen.
+    \
+                             --version   Show sdf-rs and sdfifc library versions.
+    --brief     \
+                             Only provide file information from the header, do not inspect the \
+                             file itself.
 ";
 
 #[derive(Debug, RustcDecodable)]
 struct Args {
     flag_brief: bool,
     flag_version: bool,
+    arg_index: u32,
     arg_infile: String,
     cmd_info: bool,
+    cmd_record: bool,
 }
 
 #[cfg_attr(test, allow(dead_code))]
@@ -53,11 +57,20 @@ fn main() {
         println!("sdfifc build version: {}", library_version.build_version);
         println!("    sdfifc build tag: {}", library_version.build_tag);
         exit(0);
-    } else if args.cmd_info {
-        let mut file = sdf::File::open(args.arg_infile).unwrap_or_else(|e| {
-            println!("ERROR: Unable to open file: {}", e);
-            exit(1)
+    }
+
+    let mut file = sdf::File::open(args.arg_infile.clone()).unwrap_or_else(|e| {
+        println!("ERROR: Unable to open file: {}", e);
+        exit(1)
+    });
+    if !args.flag_brief {
+        file.reindex().unwrap_or_else(|e| {
+            println!("ERROR: Unable to reindex file: {}", e);
+            exit(1);
         });
+    }
+
+    if args.cmd_info {
         let info = file.info().unwrap_or_else(|e| {
             println!("ERROR: Unable to retrieve file info: {}", e);
             exit(1);
@@ -73,10 +86,6 @@ fn main() {
             exit(0);
         }
 
-        file.reindex().unwrap_or_else(|e| {
-            println!("ERROR: Unable to reindex file: {}", e);
-            exit(1);
-        });
         let record = file.read().unwrap_or_else(|e| {
             println!("ERROR: Unable to read first point: {}", e);
             exit(1);
@@ -99,6 +108,19 @@ fn main() {
         });
         println!("number of points: {}", npoints);
 
+        exit(0);
+    }
+
+    if args.cmd_record {
+        file.seek(args.arg_index).unwrap_or_else(|e| {
+            println!("ERROR: Unable to seek to index {}: {}", args.arg_index, e);
+            exit(1);
+        });
+        let record = file.read().unwrap_or_else(|e| {
+            println!("ERROR: Unable to read point: {}", e);
+            exit(1);
+        });
+        println!("{}", record);
         exit(0);
     }
     unreachable!()

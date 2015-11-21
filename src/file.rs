@@ -1,6 +1,7 @@
 //! Public, safe wrappers around `fwifc_file` and its member functions.
 
 use std::ffi::{CStr, CString};
+use std::fmt;
 use std::ptr;
 
 use libc::c_char;
@@ -385,6 +386,27 @@ pub struct Record {
     pub facet: u16,
     /// The size of sample block in bytes.
     pub blocks: Vec<SampleBlock>,
+}
+
+impl fmt::Display for Record {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f,
+               "time_sorg: {}\ntime_external: {}\norigin: {} {} {}\ndirection: {} {} \
+                {}\nsynchronized: {}\nsync_lastsec: {}\nhousekeeping: {}\nfacet: {}\nnblocks: {}",
+               self.time_sorg,
+               self.time_external,
+               self.origin[0],
+               self.origin[1],
+               self.origin[2],
+               self.direction[0],
+               self.direction[1],
+               self.direction[2],
+               self.synchronized,
+               self.sync_lastsec,
+               self.housekeeping,
+               self.facet,
+               self.blocks.len())
+    }
 }
 
 /// A sample block.
