@@ -183,7 +183,7 @@ impl File {
                 for j in 0..block.sample_count {
                     samples.push(*block.sample.offset(j as isize));
                 }
-                blocks.push(SampleBlock {
+                blocks.push(Block {
                     time_sosbl: block.time_sosbl,
                     channel: block.channel,
                     samples: samples,
@@ -385,7 +385,7 @@ pub struct Record {
     /// The mirror fact number.
     pub facet: u16,
     /// The size of sample block in bytes.
-    pub blocks: Vec<SampleBlock>,
+    pub blocks: Vec<Block>,
 }
 
 impl fmt::Display for Record {
@@ -411,13 +411,30 @@ impl fmt::Display for Record {
 
 /// A sample block.
 #[derive(Debug)]
-pub struct SampleBlock {
+pub struct Block {
     /// The start of the sample block, in seconds.
     pub time_sosbl: f64,
     /// The channel: 0:high, 1:low, 2:saturation, 3:reference.
     pub channel: u32,
     /// The actual data samples.
     pub samples: Vec<u16>,
+}
+
+impl fmt::Display for Block {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        try!(write!(f,
+                    "time_sosbl: {}\nchannel: {}\nsamples: ",
+                    self.time_sosbl,
+                    self.channel));
+        for (i, ref sample) in self.samples.iter().enumerate() {
+            let mut seperator = ", ";
+            if i == self.samples.len() - 1 {
+                seperator = ""
+            }
+            try!(write!(f, "{}{}", sample, seperator));
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]

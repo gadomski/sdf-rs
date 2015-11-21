@@ -16,25 +16,28 @@ Usage:
     sdf info <infile> \
                              [--brief]
     sdf record <infile> <index>
+    sdf block <infile> \
+                             <index> <block>
     sdf (-h | --help)
-    \
-                             sdf --version
+    sdf --version
 
 Options:
-    -h --help   Show this screen.
     \
-                             --version   Show sdf-rs and sdfifc library versions.
-    --brief     \
-                             Only provide file information from the header, do not inspect the \
-                             file itself.
+                             -h --help   Show this screen.
+    --version   Show sdf-rs and sdfifc \
+                             library versions.
+    --brief     Only provide file information from \
+                             the header, do not inspect the file itself.
 ";
 
 #[derive(Debug, RustcDecodable)]
 struct Args {
     flag_brief: bool,
     flag_version: bool,
+    arg_block: usize,
     arg_index: u32,
     arg_infile: String,
+    cmd_block: bool,
     cmd_info: bool,
     cmd_record: bool,
 }
@@ -121,6 +124,20 @@ fn main() {
             exit(1);
         });
         println!("{}", record);
+        exit(0);
+    }
+
+    if args.cmd_block {
+        file.seek(args.arg_index).unwrap_or_else(|e| {
+            println!("ERROR: Unable to seek to index {}: {}", args.arg_index, e);
+            exit(1);
+        });
+        let record = file.read().unwrap_or_else(|e| {
+            println!("ERROR: Unable to read point: {}", e);
+            exit(1);
+        });
+        let ref block = record.blocks[args.arg_block];
+        println!("{}", block);
         exit(0);
     }
     unreachable!()
