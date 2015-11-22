@@ -73,11 +73,17 @@ pub fn discretize(record: &Record, file_info: &FileInfo) -> Result<Vec<Point>> {
 
     let reference_peaks = reference_detector.detect_peaks(&reference_block.samples[..]);
     if reference_peaks.len() != 1 {
-        debug!("Could not get a single reference peak out of: {:?}", reference_block.samples);
+        debug!("Could not get a single reference peak out of: {:?}",
+               reference_block.samples);
         return Err(SdfError::NeedSingleReferencePeak(reference_peaks.len()));
     }
     let ref reference_peak = reference_peaks[0];
-    let t_ref = timestamp(reference_peak, &reference_block, file_info);
+
+    let timestamp = |peak: &Peak<_>, block: &Block| {
+        block.time_sosbl + peak.index as f64 * file_info.sampling_time
+    };
+
+    let t_ref = timestamp(reference_peak, &reference_block);
 
     let mut points = Vec::new();
     for (block, detector) in low_blocks.iter()
@@ -85,7 +91,7 @@ pub fn discretize(record: &Record, file_info: &FileInfo) -> Result<Vec<Point>> {
                                        .chain(high_blocks.iter().zip(repeat(high_detector))) {
         let peaks = detector.detect_peaks(&block.samples[..]);
         for peak in peaks {
-            let time = timestamp(&peak, block, file_info);
+            let time = timestamp(&peak, block);
             let range = file_info.v_group / 2.0 * (time - t_ref);
             // x is straight out of the scanner, and the mirror pans it along the
             // z axis.
@@ -107,10 +113,6 @@ pub fn discretize(record: &Record, file_info: &FileInfo) -> Result<Vec<Point>> {
     }
 
     Ok(points)
-}
-
-fn timestamp(peak: &Peak<u16>, block: &Block, file_info: &FileInfo) -> f64 {
-    block.time_sosbl + peak.index as f64 * file_info.sampling_time
 }
 
 /// A 3D point in the scanner's own coordiante frame.
