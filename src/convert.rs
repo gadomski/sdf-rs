@@ -73,6 +73,7 @@ pub fn discretize(record: &Record, file_info: &FileInfo) -> Result<Vec<Point>> {
 
     let reference_peaks = reference_detector.detect_peaks(&reference_block.samples[..]);
     if reference_peaks.len() != 1 {
+        debug!("Could not get a single reference peak out of: {:?}", reference_block.samples);
         return Err(SdfError::NeedSingleReferencePeak(reference_peaks.len()));
     }
     let ref reference_peak = reference_peaks[0];
