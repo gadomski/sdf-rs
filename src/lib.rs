@@ -29,7 +29,6 @@ pub mod convert;
 pub mod error;
 mod ffi;
 pub mod file;
-#[macro_use]
 pub mod result;
 
 pub use file::File;
