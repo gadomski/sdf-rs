@@ -122,17 +122,29 @@ pub fn discretize(record: &Record, file_info: &FileInfo) -> Result<Vec<Point>> {
 /// A 3D point in the scanner's own coordiante frame.
 #[derive(Clone, Copy, Debug)]
 pub struct Point {
-    time: f64,
-    range: f32,
-    theta: f32,
-    x: f32,
-    y: f32,
-    z: f32,
-    target: u8,
-    num_target: u8,
-    facet: u16,
-    peak: Peak<u16>,
-    high_channel: bool,
+    /// The time that this point was collected. Its reference frame depends on the time settings
+    /// provided to the sdf library, which at this point are poorly defined.
+    pub time: f64,
+    /// The raw range to the point, which is different than the cartesian xyz distance.
+    pub range: f32,
+    /// The mirror scan angle in degrees.
+    pub theta: f32,
+    /// The x coordinate of the point in the scanner's own coordinate system.
+    pub x: f32,
+    /// The y coordinate of the point in the scanner's own coordinate system.
+    pub y: f32,
+    /// The z coordinate of the point in the scanner's own coordinate system.
+    pub z: f32,
+    /// The target number (1-indexed).
+    pub target: u8,
+    /// The total number of targets in this pulse.
+    pub num_target: u8,
+    /// The mirror facet used to reflect the laser energy.
+    pub facet: u16,
+    /// The raw peak information returned from `peakbag`.
+    pub peak: Peak<u16>,
+    /// Was this point collected on the high channel?
+    pub high_channel: bool,
 }
 
 impl File {
