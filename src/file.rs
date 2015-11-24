@@ -7,11 +7,11 @@ use std::ptr;
 
 use libc::c_char;
 
+use Result;
 use error::Error;
 use ffi::{fwifc_close, fwifc_file, fwifc_get_calib, fwifc_get_info, fwifc_open, fwifc_read,
           fwifc_reindex, fwifc_sbl_t, fwifc_seek, fwifc_seek_time, fwifc_seek_time_external,
           fwifc_tell, fwifc_set_sosbl_relative};
-use result::Result;
 
 /// An .sdf file.
 #[derive(Debug)]

@@ -6,9 +6,9 @@ use std::path::Path;
 use peakbag::{PeakDetector, Peak};
 use sdc;
 
+use Result;
 use error::Error;
 use file::{Block, Channel, File, FileInfo, Record};
-use result::Result;
 
 const HIGH_WIDTH: usize = 2;
 const HIGH_FLOOR: u16 = 15;

@@ -29,13 +29,13 @@ pub mod convert;
 pub mod error;
 mod ffi;
 pub mod file;
-pub mod result;
 
 pub use error::Error;
 pub use file::File;
 
 use std::ffi::CStr;
 use std::ptr;
+use std::result;
 
 use libc::c_char;
 
@@ -59,7 +59,7 @@ pub struct LibraryVersion {
 /// ```
 /// let library_version = sdf::library_version();
 /// ```
-pub fn library_version() -> result::Result<LibraryVersion> {
+pub fn library_version() -> Result<LibraryVersion> {
     unsafe {
         let mut api_major = 0u16;
         let mut api_minor = 0u16;
@@ -74,3 +74,6 @@ pub fn library_version() -> result::Result<LibraryVersion> {
         })
     }
 }
+
+/// Our custom result type.
+pub type Result<T> = result::Result<T, Error>;
