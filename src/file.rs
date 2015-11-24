@@ -7,7 +7,7 @@ use std::ptr;
 
 use libc::c_char;
 
-use error::SdfError;
+use error::Error;
 use ffi::{fwifc_close, fwifc_file, fwifc_get_calib, fwifc_get_info, fwifc_open, fwifc_read,
           fwifc_reindex, fwifc_sbl_t, fwifc_seek, fwifc_seek_time, fwifc_seek_time_external,
           fwifc_tell, fwifc_set_sosbl_relative};
@@ -291,7 +291,7 @@ impl Drop for File {
         unsafe {
             let result = fwifc_close(self.handle);
             if result != 0 {
-                panic!("Error when closing file: {}", SdfError::from_i32(result));
+                panic!("Error when closing file: {}", Error::from_i32(result));
             }
         }
     }
@@ -320,7 +320,7 @@ impl Iterator for FileIterator {
     fn next(&mut self) -> Option<Self::Item> {
         match self.file.read() {
             Ok(record) => Some(record),
-            Err(SdfError::EndOfFile(_)) => None,
+            Err(Error::EndOfFile(_)) => None,
             Err(err) => panic!("Error when iterating through the file: {}", err),
         }
     }
@@ -398,14 +398,14 @@ impl CalibrationTableKind {
                 match channel {
                     Channel::High => Ok(0),
                     Channel::Low => Ok(1),
-                    _ => Err(SdfError::NoCalibrationTableForChannel(channel)),
+                    _ => Err(Error::NoCalibrationTableForChannel(channel)),
                 }
             }
             CalibrationTableKind::Range(channel) => {
                 match channel {
                     Channel::High => Ok(2),
                     Channel::Low => Ok(3),
-                    _ => Err(SdfError::NoCalibrationTableForChannel(channel)),
+                    _ => Err(Error::NoCalibrationTableForChannel(channel)),
                 }
             }
         }
@@ -516,7 +516,7 @@ impl Channel {
             1 => Ok(Channel::Low),
             2 => Ok(Channel::Saturation),
             3 => Ok(Channel::Reference),
-            _ => Err(SdfError::InvalidChannel(n)),
+            _ => Err(Error::InvalidChannel(n)),
         }
     }
 }

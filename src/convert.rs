@@ -6,7 +6,7 @@ use std::path::Path;
 use peakbag::{PeakDetector, Peak};
 use sdc;
 
-use error::SdfError;
+use error::Error;
 use file::{Block, Channel, File, FileInfo, Record};
 use result::Result;
 
@@ -75,7 +75,7 @@ pub fn discretize(record: &Record, file_info: &FileInfo) -> Result<Vec<Point>> {
     if reference_peaks.len() != 1 {
         debug!("Could not get a single reference peak out of: {:?}",
                reference_block.samples);
-        return Err(SdfError::NeedSingleReferencePeak(reference_peaks.len()));
+        return Err(Error::NeedSingleReferencePeak(reference_peaks.len()));
     }
     let ref reference_peak = reference_peaks[0];
 
@@ -163,7 +163,7 @@ impl File {
         for (i, record) in sdf_file.into_iter().enumerate() {
             let points = match discretize(&record, file_info) {
                 Ok(points) => points,
-                Err(SdfError::NeedSingleReferencePeak(_)) => {
+                Err(Error::NeedSingleReferencePeak(_)) => {
                     warn!("No reference peak detected for pulse {}, skipping", i);
                     continue;
                 }

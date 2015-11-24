@@ -20,7 +20,7 @@ macro_rules! sdftry {
     ($expr:expr) => {{
         match $expr {
             0 => {},
-            code @ _ => return Err(SdfError::from_i32(code)),
+            code @ _ => return Err(Error::from_i32(code)),
         }
     }}
 }
@@ -31,14 +31,13 @@ mod ffi;
 pub mod file;
 pub mod result;
 
+pub use error::Error;
 pub use file::File;
 
 use std::ffi::CStr;
 use std::ptr;
 
 use libc::c_char;
-
-use error::SdfError;
 
 /// Container structure for information about the library.
 #[derive(Debug)]

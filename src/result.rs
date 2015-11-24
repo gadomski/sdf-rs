@@ -2,7 +2,7 @@
 
 use std::result;
 
-use error::SdfError;
+use error::Error;
 
 /// Our custom result type.
-pub type Result<T> = result::Result<T, SdfError>;
+pub type Result<T> = result::Result<T, Error>;

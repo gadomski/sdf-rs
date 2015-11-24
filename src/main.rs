@@ -10,7 +10,7 @@ use std::u32;
 
 use docopt::Docopt;
 
-use sdf::error::SdfError;
+use sdf::error::Error;
 
 const USAGE: &'static str = "
 Read and process .sdf files.
@@ -49,7 +49,7 @@ struct Args {
     cmd_record: bool,
 }
 
-fn error_exit(message: &str, err: SdfError) -> ! {
+fn error_exit(message: &str, err: Error) -> ! {
     println!("ERROR: {}: {}", message, err);
     exit(1);
 }

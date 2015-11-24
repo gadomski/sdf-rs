@@ -7,14 +7,14 @@ use std::ptr;
 use std::str::Utf8Error;
 
 use libc::c_char;
-use sdc::error::Error;
+use sdc;
 
 use ffi::fwifc_get_last_error;
 use file::Channel;
 
 /// Our error type.
 #[derive(Debug)]
-pub enum SdfError {
+pub enum Error {
     /// A bad argument has been passed to sdfifc.
     BadArg(String),
     /// The end of an sdf file has been reached.
@@ -37,7 +37,7 @@ pub enum SdfError {
     /// A runtime error on the part of sdfifc.
     Runtime(String),
     /// A wrapper around `sdc::Error`.
-    Sdc(Error),
+    Sdc(sdc::Error),
     /// Either zero or more than one reference peak.
     NeedSingleReferencePeak(usize),
     /// A wrapper around `std::str::Utf8Error`.
@@ -50,8 +50,8 @@ pub enum SdfError {
     UnsupportedFormat(String),
 }
 
-impl SdfError {
-    /// Converts an i32 error code to an `SdfError`.
+impl Error {
+    /// Converts an i32 error code to an `Error`.
     ///
     /// This function also calls `last_error` to get the error message from fwifc.
     ///
@@ -59,91 +59,91 @@ impl SdfError {
     ///
     /// Panics if you pass in zero. That's because zero is not an error, and your code should not
     /// be trying to create an error if there isn't one.
-    pub fn from_i32(code: i32) -> SdfError {
+    pub fn from_i32(code: i32) -> Error {
         match code {
-            -1 => SdfError::EndOfFile(last_error().to_string()),
+            -1 => Error::EndOfFile(last_error().to_string()),
             0 => panic!("Refusing to create an error with code zero"),
-            1 => SdfError::BadArg(last_error().to_string()),
-            2 => SdfError::UnsupportedFormat(last_error().to_string()),
-            3 => SdfError::MissingIndex(last_error().to_string()),
-            4 => SdfError::UnknownException(last_error().to_string()),
-            5 => SdfError::NotImplemented(last_error().to_string()),
-            6 => SdfError::Runtime(last_error().to_string()),
-            _ => SdfError::UnknownCode(code),
+            1 => Error::BadArg(last_error().to_string()),
+            2 => Error::UnsupportedFormat(last_error().to_string()),
+            3 => Error::MissingIndex(last_error().to_string()),
+            4 => Error::UnknownException(last_error().to_string()),
+            5 => Error::NotImplemented(last_error().to_string()),
+            6 => Error::Runtime(last_error().to_string()),
+            _ => Error::UnknownCode(code),
         }
     }
 }
 
-impl error::Error for SdfError {
+impl error::Error for Error {
     fn description(&self) -> &str {
         match *self {
-            SdfError::BadArg(_) => "bad argument",
-            SdfError::EndOfFile(_) => "end of file",
-            SdfError::InvalidChannel(_) => "invalid channel",
-            SdfError::MissingChannel(_) => "missing channel",
-            SdfError::MissingIndex(_) => "missing index",
-            SdfError::NeedSingleReferencePeak(_) => "zero or more than one reference peaks",
-            SdfError::NoCalibrationTableForChannel(_) => "no calibration table for channel",
-            SdfError::NotImplemented(_) => "not implemented",
-            SdfError::Nul(ref err) => err.description(),
-            SdfError::Runtime(_) => "runtime error",
-            SdfError::Sdc(ref err) => err.description(),
-            SdfError::Utf8(ref err) => err.description(),
-            SdfError::UnknownCode(_) => "unknown code",
-            SdfError::UnknownException(_) => "unknown exception",
-            SdfError::UnsupportedFormat(_) => "unsupported format",
+            Error::BadArg(_) => "bad argument",
+            Error::EndOfFile(_) => "end of file",
+            Error::InvalidChannel(_) => "invalid channel",
+            Error::MissingChannel(_) => "missing channel",
+            Error::MissingIndex(_) => "missing index",
+            Error::NeedSingleReferencePeak(_) => "zero or more than one reference peaks",
+            Error::NoCalibrationTableForChannel(_) => "no calibration table for channel",
+            Error::NotImplemented(_) => "not implemented",
+            Error::Nul(ref err) => err.description(),
+            Error::Runtime(_) => "runtime error",
+            Error::Sdc(ref err) => err.description(),
+            Error::Utf8(ref err) => err.description(),
+            Error::UnknownCode(_) => "unknown code",
+            Error::UnknownException(_) => "unknown exception",
+            Error::UnsupportedFormat(_) => "unsupported format",
         }
     }
 
     fn cause(&self) -> Option<&error::Error> {
         match *self {
-            SdfError::Nul(ref err) => Some(err),
-            SdfError::Utf8(ref err) => Some(err),
+            Error::Nul(ref err) => Some(err),
+            Error::Utf8(ref err) => Some(err),
             _ => None,
         }
     }
 }
 
 
-impl fmt::Display for SdfError {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            SdfError::BadArg(ref msg) => write!(f, "Bad argument: {}", msg),
-            SdfError::EndOfFile(ref msg) => write!(f, "End of file: {}", msg),
-            SdfError::InvalidChannel(u8) => write!(f, "Invalid channel: {}", u8),
-            SdfError::MissingChannel(ref channel) => write!(f, "Missing channel: {}", channel),
-            SdfError::MissingIndex(ref msg) => write!(f, "Missing index: {}", msg),
-            SdfError::NeedSingleReferencePeak(n) =>
+            Error::BadArg(ref msg) => write!(f, "Bad argument: {}", msg),
+            Error::EndOfFile(ref msg) => write!(f, "End of file: {}", msg),
+            Error::InvalidChannel(u8) => write!(f, "Invalid channel: {}", u8),
+            Error::MissingChannel(ref channel) => write!(f, "Missing channel: {}", channel),
+            Error::MissingIndex(ref msg) => write!(f, "Missing index: {}", msg),
+            Error::NeedSingleReferencePeak(n) =>
                 write!(f, "Wanted one reference peak, got {}", n),
-            SdfError::NoCalibrationTableForChannel(channel) =>
+            Error::NoCalibrationTableForChannel(channel) =>
                 write!(f, "No calibration table for channel: {}", channel),
-            SdfError::NotImplemented(ref msg) => write!(f, "Not implemented: {}", msg),
-            SdfError::Nul(ref err) => write!(f, "Nul error: {}", err),
-            SdfError::Runtime(ref msg) => write!(f, "Runtime error: {}", msg),
-            SdfError::Sdc(ref err) => write!(f, "Sdc error: {}", err),
-            SdfError::Utf8(ref err) => write!(f, "Utf8 error: {}", err),
-            SdfError::UnknownCode(code) => write!(f, "Unknown code: {}", code),
-            SdfError::UnknownException(ref msg) => write!(f, "Unknown exception: {}", msg),
-            SdfError::UnsupportedFormat(ref msg) => write!(f, "Unsupported format: {}", msg),
+            Error::NotImplemented(ref msg) => write!(f, "Not implemented: {}", msg),
+            Error::Nul(ref err) => write!(f, "Nul error: {}", err),
+            Error::Runtime(ref msg) => write!(f, "Runtime error: {}", msg),
+            Error::Sdc(ref err) => write!(f, "Sdc error: {}", err),
+            Error::Utf8(ref err) => write!(f, "Utf8 error: {}", err),
+            Error::UnknownCode(code) => write!(f, "Unknown code: {}", code),
+            Error::UnknownException(ref msg) => write!(f, "Unknown exception: {}", msg),
+            Error::UnsupportedFormat(ref msg) => write!(f, "Unsupported format: {}", msg),
         }
     }
 }
 
-impl From<NulError> for SdfError {
-    fn from(err: NulError) -> SdfError {
-        SdfError::Nul(err)
+impl From<NulError> for Error {
+    fn from(err: NulError) -> Error {
+        Error::Nul(err)
     }
 }
 
-impl From<Error> for SdfError {
-    fn from(err: Error) -> SdfError {
-        SdfError::Sdc(err)
+impl From<sdc::Error> for Error {
+    fn from(err: sdc::Error) -> Error {
+        Error::Sdc(err)
     }
 }
 
-impl From<Utf8Error> for SdfError {
-    fn from(err: Utf8Error) -> SdfError {
-        SdfError::Utf8(err)
+impl From<Utf8Error> for Error {
+    fn from(err: Utf8Error) -> Error {
+        Error::Utf8(err)
     }
 }
 
