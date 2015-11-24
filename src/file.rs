@@ -14,9 +14,16 @@ use ffi::{fwifc_close, fwifc_file, fwifc_get_calib, fwifc_get_info, fwifc_open, 
           fwifc_tell, fwifc_set_sosbl_relative};
 
 /// An .sdf file.
+///
+/// The file is mostly a simple wrapper around an `fwifc_file` handle, but we do a bit of extra
+/// smarts (or dumbs) to help other users.
+///
+/// - We ensure that we reindex the file only once, regardless of the number of times that
+/// `reindex` has been called.
 #[derive(Debug)]
 pub struct File {
     handle: fwifc_file,
+    indexed: bool,
 }
 
 impl File {
@@ -33,7 +40,7 @@ impl File {
             let path = try!(CString::new(path));
             let mut file: fwifc_file = ptr::null_mut();
             sdftry!(fwifc_open(path.as_ptr(), &mut file));
-            Ok(File { handle: file })
+            Ok(File { handle: file, indexed: false })
         }
     }
 
@@ -50,7 +57,11 @@ impl File {
     /// file.reindex().unwrap();
     /// ```
     pub fn reindex(&mut self) -> Result<()> {
-        unsafe { Ok(sdftry!(fwifc_reindex(self.handle))) }
+        if !self.indexed {
+            unsafe { sdftry!(fwifc_reindex(self.handle)) }
+        }
+        self.indexed = true;
+        Ok(())
     }
 
     /// Sets the mode timestamp of the start of the sample block.
