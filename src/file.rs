@@ -1,8 +1,10 @@
 //! Public, safe wrappers around `fwifc_file` and its member functions.
 
-use std::ffi::{CStr, CString};
+use std::ffi::{CStr, CString, OsString};
 use std::fmt;
+use std::fs::remove_file;
 use std::iter::{Iterator, IntoIterator};
+use std::path::Path;
 use std::ptr;
 
 use libc::c_char;
@@ -10,8 +12,8 @@ use libc::c_char;
 use Result;
 use error::Error;
 use ffi::{fwifc_close, fwifc_file, fwifc_get_calib, fwifc_get_info, fwifc_open, fwifc_read,
-          fwifc_reindex, fwifc_sbl_t, fwifc_seek, fwifc_seek_time, fwifc_seek_time_external,
-          fwifc_tell, fwifc_set_sosbl_relative};
+fwifc_reindex, fwifc_sbl_t, fwifc_seek, fwifc_seek_time, fwifc_seek_time_external,
+fwifc_tell, fwifc_set_sosbl_relative};
 
 /// An .sdf file.
 ///
@@ -24,6 +26,7 @@ use ffi::{fwifc_close, fwifc_file, fwifc_get_calib, fwifc_get_info, fwifc_open, 
 pub struct File {
     handle: fwifc_file,
     indexed: bool,
+    index_path: OsString,
 }
 
 impl File {
@@ -40,7 +43,8 @@ impl File {
             let path = try!(CString::new(path));
             let mut file: fwifc_file = ptr::null_mut();
             sdftry!(fwifc_open(path.as_ptr(), &mut file));
-            Ok(File { handle: file, indexed: false })
+            let index_path = Path::new(try!(path.to_str())).with_extension("idx").into_os_string();
+            Ok(File { handle: file, indexed: false, index_path: index_path })
         }
     }
 
@@ -62,6 +66,20 @@ impl File {
         }
         self.indexed = true;
         Ok(())
+    }
+
+    /// Remove this file's index from the filesystem.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use sdf::file::File;
+    /// let mut file = File::open("data/110630_174316.sdf").unwrap();
+    /// file.reindex().unwrap();
+    /// file.remove_index().unwrap();
+    /// ```
+    pub fn remove_index(&self) -> Result<()> {
+        remove_file(&self.index_path).map_err(|e| Error::from(e))
     }
 
     /// Sets the mode timestamp of the start of the sample block.
@@ -451,19 +469,19 @@ impl fmt::Display for Record {
         write!(f,
                "time_sorg: {}\ntime_external: {}\norigin: {} {} {}\ndirection: {} {} \
                 {}\nsynchronized: {}\nsync_lastsec: {}\nhousekeeping: {}\nfacet: {}\nnblocks: {}",
-               self.time_sorg,
-               self.time_external,
-               self.origin[0],
-               self.origin[1],
-               self.origin[2],
-               self.direction[0],
-               self.direction[1],
-               self.direction[2],
-               self.synchronized,
-               self.sync_lastsec,
-               self.housekeeping,
-               self.facet,
-               self.blocks.len())
+                self.time_sorg,
+                self.time_external,
+                self.origin[0],
+                self.origin[1],
+                self.origin[2],
+                self.direction[0],
+                self.direction[1],
+                self.direction[2],
+                self.synchronized,
+                self.sync_lastsec,
+                self.housekeeping,
+                self.facet,
+                self.blocks.len())
     }
 }
 

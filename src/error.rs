@@ -3,6 +3,7 @@
 use std::error;
 use std::ffi::{CStr, NulError};
 use std::fmt;
+use std::io;
 use std::ptr;
 use std::str::Utf8Error;
 
@@ -21,6 +22,8 @@ pub enum Error {
     EndOfFile(String),
     /// The specified channel is invalid.
     InvalidChannel(u32),
+    /// A wrapper around a `std::io::Error`.
+    Io(io::Error),
     /// The channel is a valid channel, but we couldn't find it when we tried.
     MissingChannel(Channel),
     /// The sdf file is missing an index.
@@ -79,6 +82,7 @@ impl error::Error for Error {
         match *self {
             Error::BadArg(_) => "bad argument",
             Error::EndOfFile(_) => "end of file",
+            Error::Io(ref err) => err.description(),
             Error::InvalidChannel(_) => "invalid channel",
             Error::MissingChannel(_) => "missing channel",
             Error::MissingIndex(_) => "missing index",
@@ -97,6 +101,7 @@ impl error::Error for Error {
 
     fn cause(&self) -> Option<&error::Error> {
         match *self {
+            Error::Io(ref err) => Some(err),
             Error::Nul(ref err) => Some(err),
             Error::Utf8(ref err) => Some(err),
             _ => None,
@@ -110,6 +115,7 @@ impl fmt::Display for Error {
         match *self {
             Error::BadArg(ref msg) => write!(f, "Bad argument: {}", msg),
             Error::EndOfFile(ref msg) => write!(f, "End of file: {}", msg),
+            Error::Io(ref err) => write!(f, "IO error: {}", err),
             Error::InvalidChannel(u8) => write!(f, "Invalid channel: {}", u8),
             Error::MissingChannel(ref channel) => write!(f, "Missing channel: {}", channel),
             Error::MissingIndex(ref msg) => write!(f, "Missing index: {}", msg),
@@ -126,6 +132,12 @@ impl fmt::Display for Error {
             Error::UnknownException(ref msg) => write!(f, "Unknown exception: {}", msg),
             Error::UnsupportedFormat(ref msg) => write!(f, "Unsupported format: {}", msg),
         }
+    }
+}
+
+impl From<io::Error> for Error {
+    fn from(err: io::Error) -> Error {
+        Error::Io(err)
     }
 }
 
