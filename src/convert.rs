@@ -169,6 +169,9 @@ impl File {
                     rg_index: 1,
                     facet_number: record.facet as u8,
                     high_channel: p.high_channel,
+                    class_id: None,
+                    rho: None,
+                    reflectance: None,
                 };
                 try!(sdc_file.write_point(point));
             }
