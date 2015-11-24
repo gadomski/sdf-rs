@@ -7,7 +7,7 @@ use std::ptr;
 use std::str::Utf8Error;
 
 use libc::c_char;
-use sdc::error::SdcError;
+use sdc::error::Error;
 
 use ffi::fwifc_get_last_error;
 use file::Channel;
@@ -36,8 +36,8 @@ pub enum SdfError {
     Nul(NulError),
     /// A runtime error on the part of sdfifc.
     Runtime(String),
-    /// A wrapper around `sdc::SdcError`.
-    Sdc(SdcError),
+    /// A wrapper around `sdc::Error`.
+    Sdc(Error),
     /// Either zero or more than one reference peak.
     NeedSingleReferencePeak(usize),
     /// A wrapper around `std::str::Utf8Error`.
@@ -135,8 +135,8 @@ impl From<NulError> for SdfError {
     }
 }
 
-impl From<SdcError> for SdfError {
-    fn from(err: SdcError) -> SdfError {
+impl From<Error> for SdfError {
+    fn from(err: Error) -> SdfError {
         SdfError::Sdc(err)
     }
 }

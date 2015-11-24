@@ -140,7 +140,7 @@ impl File {
     pub fn convert<T: Into<Vec<u8>>, P: AsRef<Path>>(sdf_path: T, sdc_path: P) -> Result<()> {
         let mut sdf_file = try!(File::open(sdf_path));
         let ref file_info = try!(sdf_file.info());
-        let mut sdc_file = try!(sdc::File::create(sdc_path));
+        let mut sdc_file = try!(sdc::Writer::from_path(sdc_path));
         for (i, record) in sdf_file.into_iter().enumerate() {
             let points = match discretize(&record, file_info) {
                 Ok(points) => points,
