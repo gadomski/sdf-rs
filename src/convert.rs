@@ -90,7 +90,8 @@ pub fn discretize(record: &Record, file_info: &FileInfo) -> Result<Vec<Point>> {
                                        .zip(repeat(low_detector))
                                        .chain(high_blocks.iter().zip(repeat(high_detector))) {
         let peaks = detector.detect_peaks(&block.samples[..]);
-        for peak in peaks {
+        let num_target = peaks.len();
+        for (i, peak) in peaks.into_iter().enumerate() {
             let time = timestamp(&peak, block);
             let range = file_info.v_group / 2.0 * (time - t_ref);
             // x is straight out of the scanner, and the mirror pans it along the
@@ -105,6 +106,9 @@ pub fn discretize(record: &Record, file_info: &FileInfo) -> Result<Vec<Point>> {
                 x: (record.origin[0] + record.direction[0] * range) as f32,
                 y: (record.origin[1] + record.direction[1] * range) as f32,
                 z: (record.origin[2] + record.direction[2] * range) as f32,
+                target: (i + 1) as u8,
+                num_target: num_target as u8,
+                facet: record.facet,
                 peak: peak,
                 high_channel: block.channel == Channel::High,
             };
@@ -124,6 +128,9 @@ pub struct Point {
     x: f32,
     y: f32,
     z: f32,
+    target: u8,
+    num_target: u8,
+    facet: u16,
     peak: Peak<u16>,
     high_channel: bool,
 }
@@ -150,7 +157,7 @@ impl File {
                 }
                 Err(err) => return Err(err),
             };
-            for (i, p) in points.iter().enumerate() {
+            for p in points {
                 let ref point = sdc::Point {
                     time: p.time,
                     range: p.range,
@@ -163,11 +170,11 @@ impl File {
                     width: 1,
                     target_type: sdc::TargetType::Peak,
                     // Riegl one-indexes its target counts. Bah.
-                    target: (i + 1) as u8,
-                    num_target: points.len() as u8,
+                    target: p.target,
+                    num_target: p.num_target,
                     // FIXME I have no idea what this means
                     rg_index: 1,
-                    facet_number: record.facet as u8,
+                    facet_number: p.facet as u8,
                     high_channel: p.high_channel,
                     class_id: None,
                     rho: None,
