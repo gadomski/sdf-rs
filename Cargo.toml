@@ -9,6 +9,7 @@ repository = "https://github.com/gadomski/sdf-rs.git"
 readme = "README.md"
 keywords = ["pointcloud", "LiDAR", "full-waveform"]
 license = "MIT"
+exclude = ["data/*"]
 
 [[bin]]
 name = "sdf"
