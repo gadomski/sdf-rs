@@ -2,12 +2,23 @@
 name = "sdf"
 version = "0.1.0"
 authors = ["Pete Gadomski <pete.gadomski@gmail.com>"]
+description = "Read Riegl's .sdf full-waveform LiDAR data format"
+documentation = "http://gadomski.github.io/sdf-rs"
+homepage = "https://github.com/gadomski/sdf-rs"
+repository = "https://github.com/gadomski/sdf-rs.git"
+readme = "README.md"
+keywords = ["pointcloud", "LiDAR", "full-waveform"]
+license = "MIT"
+
+[[bin]]
+name = "sdf"
+doc = false
 
 [dependencies]
 docopt = "0.6"
 env_logger = "0.3"
 libc = "0.2"
 log = "0.3"
-peakbag = { git = "https://github.com/gadomski/peakbag.git" }
+peakbag = "0.1"
 rustc-serialize = "0.3"
-sdc = { git = "https://github.com/gadomski/sdc-rs.git" }
+sdc = "0.1"
