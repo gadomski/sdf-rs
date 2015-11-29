@@ -100,7 +100,7 @@ pub fn discretize(record: &Record, file_info: &FileInfo) -> Result<Vec<Point>> {
                             .atan()
                             .to_degrees();
             let point = Point {
-                time: time,
+                time: time - record.time_sorg + record.time_external,
                 range: range as f32,
                 theta: theta as f32,
                 x: (record.origin[0] + record.direction[0] * range) as f32,
@@ -213,5 +213,6 @@ mod tests {
         let ref record = file.read().unwrap();
         let points = discretize(record, file_info).unwrap();
         assert_eq!(4, points.len());
+        assert_eq!(409397.90336020273, points[0].time);
     }
 }
