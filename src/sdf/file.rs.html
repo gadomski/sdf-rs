@@ -634,12 +634,40 @@
 <span id="592">592</span>
 <span id="593">593</span>
 <span id="594">594</span>
+<span id="595">595</span>
+<span id="596">596</span>
+<span id="597">597</span>
+<span id="598">598</span>
+<span id="599">599</span>
+<span id="600">600</span>
+<span id="601">601</span>
+<span id="602">602</span>
+<span id="603">603</span>
+<span id="604">604</span>
+<span id="605">605</span>
+<span id="606">606</span>
+<span id="607">607</span>
+<span id="608">608</span>
+<span id="609">609</span>
+<span id="610">610</span>
+<span id="611">611</span>
+<span id="612">612</span>
+<span id="613">613</span>
+<span id="614">614</span>
+<span id="615">615</span>
+<span id="616">616</span>
+<span id="617">617</span>
+<span id="618">618</span>
+<span id="619">619</span>
+<span id="620">620</span>
+<span id="621">621</span>
+<span id="622">622</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Public, safe wrappers around `fwifc_file` and its member functions.</span>
 
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>ffi</span>::{<span class='ident'>CStr</span>, <span class='ident'>CString</span>, <span class='ident'>OsString</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>fmt</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>fs</span>::<span class='ident'>remove_file</span>;
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>fs</span>::{<span class='ident'>metadata</span>, <span class='ident'>remove_file</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>iter</span>::{<span class='ident'>Iterator</span>, <span class='ident'>IntoIterator</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>path</span>::<span class='ident'>Path</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>ptr</span>;
@@ -649,8 +677,8 @@
 <span class='kw'>use</span> <span class='prelude-ty'>Result</span>;
 <span class='kw'>use</span> <span class='ident'>error</span>::<span class='ident'>Error</span>;
 <span class='kw'>use</span> <span class='ident'>ffi</span>::{<span class='ident'>fwifc_close</span>, <span class='ident'>fwifc_file</span>, <span class='ident'>fwifc_get_calib</span>, <span class='ident'>fwifc_get_info</span>, <span class='ident'>fwifc_open</span>, <span class='ident'>fwifc_read</span>,
-<span class='ident'>fwifc_reindex</span>, <span class='ident'>fwifc_sbl_t</span>, <span class='ident'>fwifc_seek</span>, <span class='ident'>fwifc_seek_time</span>, <span class='ident'>fwifc_seek_time_external</span>,
-<span class='ident'>fwifc_tell</span>, <span class='ident'>fwifc_set_sosbl_relative</span>};
+          <span class='ident'>fwifc_reindex</span>, <span class='ident'>fwifc_sbl_t</span>, <span class='ident'>fwifc_seek</span>, <span class='ident'>fwifc_seek_time</span>, <span class='ident'>fwifc_seek_time_external</span>,
+          <span class='ident'>fwifc_tell</span>, <span class='ident'>fwifc_set_sosbl_relative</span>};
 
 <span class='doccomment'>/// An .sdf file.</span>
 <span class='doccomment'>///</span>
@@ -662,7 +690,6 @@
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>File</span> {
     <span class='ident'>handle</span>: <span class='ident'>fwifc_file</span>,
-    <span class='ident'>indexed</span>: <span class='ident'>bool</span>,
     <span class='ident'>index_path</span>: <span class='ident'>OsString</span>,
 }
 
@@ -681,7 +708,10 @@
             <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>file</span>: <span class='ident'>fwifc_file</span> <span class='op'>=</span> <span class='ident'>ptr</span>::<span class='ident'>null_mut</span>();
             <span class='macro'>sdftry</span><span class='macro'>!</span>(<span class='ident'>fwifc_open</span>(<span class='ident'>path</span>.<span class='ident'>as_ptr</span>(), <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>file</span>));
             <span class='kw'>let</span> <span class='ident'>index_path</span> <span class='op'>=</span> <span class='ident'>Path</span>::<span class='ident'>new</span>(<span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>path</span>.<span class='ident'>to_str</span>())).<span class='ident'>with_extension</span>(<span class='string'>&quot;idx&quot;</span>).<span class='ident'>into_os_string</span>();
-            <span class='prelude-val'>Ok</span>(<span class='ident'>File</span> { <span class='ident'>handle</span>: <span class='ident'>file</span>, <span class='ident'>indexed</span>: <span class='boolval'>false</span>, <span class='ident'>index_path</span>: <span class='ident'>index_path</span> })
+            <span class='prelude-val'>Ok</span>(<span class='ident'>File</span> {
+                <span class='ident'>handle</span>: <span class='ident'>file</span>,
+                <span class='ident'>index_path</span>: <span class='ident'>index_path</span>,
+            })
         }
     }
 
@@ -698,10 +728,9 @@
     <span class='doccomment'>/// file.reindex().unwrap();</span>
     <span class='doccomment'>/// ```</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>reindex</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> {
-        <span class='kw'>if</span> <span class='op'>!</span><span class='self'>self</span>.<span class='ident'>indexed</span> {
+        <span class='kw'>if</span> <span class='op'>!</span><span class='self'>self</span>.<span class='ident'>indexed</span>() {
             <span class='kw'>unsafe</span> { <span class='macro'>sdftry</span><span class='macro'>!</span>(<span class='ident'>fwifc_reindex</span>(<span class='self'>self</span>.<span class='ident'>handle</span>)) }
         }
-        <span class='self'>self</span>.<span class='ident'>indexed</span> <span class='op'>=</span> <span class='boolval'>true</span>;
         <span class='prelude-val'>Ok</span>(())
     }
 
@@ -950,6 +979,19 @@
         <span class='kw'>unsafe</span> { <span class='macro'>sdftry</span><span class='macro'>!</span>(<span class='ident'>fwifc_tell</span>(<span class='self'>self</span>.<span class='ident'>handle</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>index</span>)) }
         <span class='prelude-val'>Ok</span>(<span class='ident'>index</span>)
     }
+
+    <span class='doccomment'>/// Returns true if this file is indexed.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// # Examples</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// ```</span>
+    <span class='doccomment'>/// use sdf::file::File;</span>
+    <span class='doccomment'>/// let file = File::open(&quot;data/110630_174316.sdf&quot;).unwrap();</span>
+    <span class='doccomment'>/// file.indexed();</span>
+    <span class='doccomment'>/// ```</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>indexed</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='ident'>metadata</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>index_path</span>).<span class='ident'>map</span>(<span class='op'>|</span><span class='ident'>m</span><span class='op'>|</span> <span class='ident'>m</span>.<span class='ident'>is_file</span>()).<span class='ident'>unwrap_or</span>(<span class='boolval'>false</span>)
+    }
 }
 
 <span class='kw'>impl</span> <span class='ident'>Drop</span> <span class='kw'>for</span> <span class='ident'>File</span> {
@@ -1106,19 +1148,19 @@
         <span class='macro'>write</span><span class='macro'>!</span>(<span class='ident'>f</span>,
                <span class='string'>&quot;time_sorg: {}\ntime_external: {}\norigin: {} {} {}\ndirection: {} {} \
                 {}\nsynchronized: {}\nsync_lastsec: {}\nhousekeeping: {}\nfacet: {}\nnblocks: {}&quot;</span>,
-                <span class='self'>self</span>.<span class='ident'>time_sorg</span>,
-                <span class='self'>self</span>.<span class='ident'>time_external</span>,
-                <span class='self'>self</span>.<span class='ident'>origin</span>[<span class='number'>0</span>],
-                <span class='self'>self</span>.<span class='ident'>origin</span>[<span class='number'>1</span>],
-                <span class='self'>self</span>.<span class='ident'>origin</span>[<span class='number'>2</span>],
-                <span class='self'>self</span>.<span class='ident'>direction</span>[<span class='number'>0</span>],
-                <span class='self'>self</span>.<span class='ident'>direction</span>[<span class='number'>1</span>],
-                <span class='self'>self</span>.<span class='ident'>direction</span>[<span class='number'>2</span>],
-                <span class='self'>self</span>.<span class='ident'>synchronized</span>,
-                <span class='self'>self</span>.<span class='ident'>sync_lastsec</span>,
-                <span class='self'>self</span>.<span class='ident'>housekeeping</span>,
-                <span class='self'>self</span>.<span class='ident'>facet</span>,
-                <span class='self'>self</span>.<span class='ident'>blocks</span>.<span class='ident'>len</span>())
+               <span class='self'>self</span>.<span class='ident'>time_sorg</span>,
+               <span class='self'>self</span>.<span class='ident'>time_external</span>,
+               <span class='self'>self</span>.<span class='ident'>origin</span>[<span class='number'>0</span>],
+               <span class='self'>self</span>.<span class='ident'>origin</span>[<span class='number'>1</span>],
+               <span class='self'>self</span>.<span class='ident'>origin</span>[<span class='number'>2</span>],
+               <span class='self'>self</span>.<span class='ident'>direction</span>[<span class='number'>0</span>],
+               <span class='self'>self</span>.<span class='ident'>direction</span>[<span class='number'>1</span>],
+               <span class='self'>self</span>.<span class='ident'>direction</span>[<span class='number'>2</span>],
+               <span class='self'>self</span>.<span class='ident'>synchronized</span>,
+               <span class='self'>self</span>.<span class='ident'>sync_lastsec</span>,
+               <span class='self'>self</span>.<span class='ident'>housekeeping</span>,
+               <span class='self'>self</span>.<span class='ident'>facet</span>,
+               <span class='self'>self</span>.<span class='ident'>blocks</span>.<span class='ident'>len</span>())
     }
 }
 
@@ -1203,6 +1245,8 @@
 <span class='kw'>mod</span> <span class='ident'>tests</span> {
     <span class='kw'>use</span> <span class='ident'>super</span>::<span class='op'>*</span>;
 
+    <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>fs</span>::<span class='ident'>remove_file</span>;
+
     <span class='attribute'>#[<span class='ident'>test</span>]</span>
     <span class='kw'>fn</span> <span class='ident'>open_throws_on_bad_filename</span>() {
         <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>File</span>::<span class='ident'>open</span>(<span class='string'>&quot;notafile.sdf&quot;</span>).<span class='ident'>is_err</span>());
@@ -1227,6 +1271,18 @@
         <span class='kw'>let</span> <span class='ident'>calib</span> <span class='op'>=</span> <span class='ident'>file</span>.<span class='ident'>calibration</span>(<span class='ident'>CalibrationTableKind</span>::<span class='ident'>Amplitude</span>(<span class='ident'>Channel</span>::<span class='ident'>High</span>)).<span class='ident'>unwrap</span>();
         <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='number'>256</span>, <span class='ident'>calib</span>.<span class='ident'>abscissa</span>.<span class='ident'>len</span>());
         <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>calib</span>.<span class='ident'>ordinate</span>.<span class='ident'>len</span>(), <span class='ident'>calib</span>.<span class='ident'>abscissa</span>.<span class='ident'>len</span>());
+    }
+
+    <span class='attribute'>#[<span class='ident'>test</span>]</span>
+    <span class='kw'>fn</span> <span class='ident'>smart_index</span>() {
+        <span class='ident'>remove_file</span>(<span class='string'>&quot;data/110630_174316.idx&quot;</span>).<span class='ident'>unwrap_or</span>(());
+        {
+            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>file</span> <span class='op'>=</span> <span class='ident'>File</span>::<span class='ident'>open</span>(<span class='string'>&quot;data/110630_174316.sdf&quot;</span>).<span class='ident'>unwrap</span>();
+            <span class='macro'>assert</span><span class='macro'>!</span>(<span class='op'>!</span><span class='ident'>file</span>.<span class='ident'>indexed</span>());
+            <span class='ident'>file</span>.<span class='ident'>reindex</span>().<span class='ident'>unwrap</span>();
+        }
+        <span class='kw'>let</span> <span class='ident'>file</span> <span class='op'>=</span> <span class='ident'>File</span>::<span class='ident'>open</span>(<span class='string'>&quot;data/110630_174316.sdf&quot;</span>).<span class='ident'>unwrap</span>();
+        <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>file</span>.<span class='ident'>indexed</span>());
     }
 }
 </pre>
