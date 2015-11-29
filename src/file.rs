@@ -64,6 +64,7 @@ impl File {
     /// ```
     pub fn reindex(&mut self) -> Result<()> {
         if !self.indexed() {
+            info!("Reindexing");
             unsafe { sdftry!(fwifc_reindex(self.handle)) }
         }
         Ok(())
