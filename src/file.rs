@@ -2,7 +2,7 @@
 
 use std::ffi::{CStr, CString, OsString};
 use std::fmt;
-use std::fs::remove_file;
+use std::fs::{metadata, remove_file};
 use std::iter::{Iterator, IntoIterator};
 use std::path::Path;
 use std::ptr;
@@ -12,8 +12,8 @@ use libc::c_char;
 use Result;
 use error::Error;
 use ffi::{fwifc_close, fwifc_file, fwifc_get_calib, fwifc_get_info, fwifc_open, fwifc_read,
-fwifc_reindex, fwifc_sbl_t, fwifc_seek, fwifc_seek_time, fwifc_seek_time_external,
-fwifc_tell, fwifc_set_sosbl_relative};
+          fwifc_reindex, fwifc_sbl_t, fwifc_seek, fwifc_seek_time, fwifc_seek_time_external,
+          fwifc_tell, fwifc_set_sosbl_relative};
 
 /// An .sdf file.
 ///
@@ -25,7 +25,6 @@ fwifc_tell, fwifc_set_sosbl_relative};
 #[derive(Debug)]
 pub struct File {
     handle: fwifc_file,
-    indexed: bool,
     index_path: OsString,
 }
 
@@ -44,7 +43,10 @@ impl File {
             let mut file: fwifc_file = ptr::null_mut();
             sdftry!(fwifc_open(path.as_ptr(), &mut file));
             let index_path = Path::new(try!(path.to_str())).with_extension("idx").into_os_string();
-            Ok(File { handle: file, indexed: false, index_path: index_path })
+            Ok(File {
+                handle: file,
+                index_path: index_path,
+            })
         }
     }
 
@@ -61,10 +63,9 @@ impl File {
     /// file.reindex().unwrap();
     /// ```
     pub fn reindex(&mut self) -> Result<()> {
-        if !self.indexed {
+        if !self.indexed() {
             unsafe { sdftry!(fwifc_reindex(self.handle)) }
         }
-        self.indexed = true;
         Ok(())
     }
 
@@ -313,6 +314,19 @@ impl File {
         unsafe { sdftry!(fwifc_tell(self.handle, &mut index)) }
         Ok(index)
     }
+
+    /// Returns true if this file is indexed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use sdf::file::File;
+    /// let file = File::open("data/110630_174316.sdf").unwrap();
+    /// file.indexed();
+    /// ```
+    pub fn indexed(&self) -> bool {
+        metadata(&self.index_path).map(|m| m.is_file()).unwrap_or(false)
+    }
 }
 
 impl Drop for File {
@@ -469,19 +483,19 @@ impl fmt::Display for Record {
         write!(f,
                "time_sorg: {}\ntime_external: {}\norigin: {} {} {}\ndirection: {} {} \
                 {}\nsynchronized: {}\nsync_lastsec: {}\nhousekeeping: {}\nfacet: {}\nnblocks: {}",
-                self.time_sorg,
-                self.time_external,
-                self.origin[0],
-                self.origin[1],
-                self.origin[2],
-                self.direction[0],
-                self.direction[1],
-                self.direction[2],
-                self.synchronized,
-                self.sync_lastsec,
-                self.housekeeping,
-                self.facet,
-                self.blocks.len())
+               self.time_sorg,
+               self.time_external,
+               self.origin[0],
+               self.origin[1],
+               self.origin[2],
+               self.direction[0],
+               self.direction[1],
+               self.direction[2],
+               self.synchronized,
+               self.sync_lastsec,
+               self.housekeeping,
+               self.facet,
+               self.blocks.len())
     }
 }
 
@@ -566,6 +580,8 @@ impl fmt::Display for Channel {
 mod tests {
     use super::*;
 
+    use std::fs::remove_file;
+
     #[test]
     fn open_throws_on_bad_filename() {
         assert!(File::open("notafile.sdf").is_err());
@@ -590,5 +606,17 @@ mod tests {
         let calib = file.calibration(CalibrationTableKind::Amplitude(Channel::High)).unwrap();
         assert_eq!(256, calib.abscissa.len());
         assert_eq!(calib.ordinate.len(), calib.abscissa.len());
+    }
+
+    #[test]
+    fn smart_index() {
+        remove_file("data/110630_174316.idx").unwrap_or(());
+        {
+            let mut file = File::open("data/110630_174316.sdf").unwrap();
+            assert!(!file.indexed());
+            file.reindex().unwrap();
+        }
+        let file = File::open("data/110630_174316.sdf").unwrap();
+        assert!(file.indexed());
     }
 }
