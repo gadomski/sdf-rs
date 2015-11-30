@@ -23,3 +23,6 @@ log = "0.3"
 peakbag = "0.1"
 rustc-serialize = "0.3"
 sdc = "0.1"
+
+[profile.test]
+opt-level = 2

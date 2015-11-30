@@ -215,4 +215,18 @@ mod tests {
         assert_eq!(4, points.len());
         assert_eq!(409397.90336020273, points[0].time);
     }
+
+    #[test]
+    fn angles() {
+        let mut file = File::open("data/110630_174316.sdf").unwrap();
+        file.reindex().unwrap();
+        let ref file_info = file.info().unwrap();
+        for ref record in file.into_iter().take(10000) {
+            for point in discretize(record, file_info).unwrap() {
+                assert!((point.theta < 40.0) & (point.theta > -40.0),
+                        "Theta: {}",
+                        point.theta);
+            }
+        }
+    }
 }
