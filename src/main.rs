@@ -16,8 +16,6 @@ const USAGE: &'static str = "
 Read and process .sdf files.
 
 Usage:
-    sdf block <infile> <index> \
-                             <block>
     sdf convert <infile> <outfile>
     sdf info <infile> \
                              [--brief]
@@ -39,11 +37,9 @@ Options:
 struct Args {
     flag_brief: bool,
     flag_version: bool,
-    arg_block: usize,
     arg_index: u32,
     arg_infile: String,
     arg_outfile: String,
-    cmd_block: bool,
     cmd_convert: bool,
     cmd_info: bool,
     cmd_record: bool,
@@ -99,16 +95,16 @@ fn main() {
             exit(0);
         }
 
-        let record = file.read().unwrap_or_else(|e| error_exit("Unable to read first point", e));
+        let record = file.read().unwrap_or_else(|e| error_exit("Unable to read first record", e));
         let start_time = record.time_external;
         println!("      start time: {}", start_time);
         file.seek(u32::MAX).unwrap_or_else(|e| error_exit("Unable to seek to end of file", e));
-        let record = file.read().unwrap_or_else(|e| error_exit("Unable to read last point", e));
+        let record = file.read().unwrap_or_else(|e| error_exit("Unable to read last record", e));
         let end_time = record.time_external;
         println!("        end time: {}", end_time);
-        let npoints = file.tell()
+        let records = file.tell()
                           .unwrap_or_else(|e| error_exit("Unable to get index of next record", e));
-        println!("number of points: {}", npoints);
+        println!("number of records: {}", records);
 
         exit(0);
     }
@@ -119,25 +115,13 @@ fn main() {
                 error_exit(&format!("Unable to seek to index {}", args.arg_index)[..],
                            e)
             });
-        let record = file.read().unwrap_or_else(|e| error_exit("Unable to read point", e));
+        let record = file.read().unwrap_or_else(|e| error_exit("Unable to read record", e));
         println!("{}", record);
-        exit(0);
-    }
-
-    if args.cmd_block {
-        file.seek(args.arg_index)
-            .unwrap_or_else(|e| {
-                error_exit(&format!("Unable to seek to index {}", args.arg_index)[..],
-                           e)
-            });
-        let record = file.read().unwrap_or_else(|e| error_exit("Unable to read point", e));
-        if args.arg_block < record.blocks.len() {
-            println!("{}", record.blocks[args.arg_block]);
-            exit(0);
-        } else {
-            println!("ERROR: record only has {} blocks", record.blocks.len());
-            exit(1);
+        for (i, block) in record.blocks.iter().enumerate() {
+            println!("\nBlock {}", i);
+            println!("{}", block);
         }
+        exit(0);
     }
 
     unreachable!()
