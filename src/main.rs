@@ -16,21 +16,15 @@ const USAGE: &'static str = "
 Read and process .sdf files.
 
 Usage:
-    sdf convert <infile> <outfile>
-    sdf info <infile> \
-                             [--brief]
+    sdf info <infile> [--brief]
     sdf record <infile> <index>
     sdf (-h | --help)
-    \
-                             sdf --version
+    sdf --version
 
 Options:
     -h --help   Show this screen.
-    \
-                             --version   Show sdf-rs and sdfifc library versions.
-    --brief     \
-                             Only provide file information from the header, do not inspect the \
-                             file itself.
+    --version   Show sdf-rs and sdfifc library versions.
+    --brief     Only provide file information from the header, do not inspect the file itself.
 ";
 
 #[derive(Debug, RustcDecodable)]
@@ -39,8 +33,6 @@ struct Args {
     flag_version: bool,
     arg_index: u32,
     arg_infile: String,
-    arg_outfile: String,
-    cmd_convert: bool,
     cmd_info: bool,
     cmd_record: bool,
 }
@@ -67,12 +59,6 @@ fn main() {
                  library_version.api_minor);
         println!("sdfifc build version: {}", library_version.build_version);
         println!("    sdfifc build tag: {}", library_version.build_tag);
-        exit(0);
-    }
-
-    if args.cmd_convert {
-        sdf::File::convert(args.arg_infile, args.arg_outfile)
-            .unwrap_or_else(|e| error_exit("Problem when converting file", e));
         exit(0);
     }
 

@@ -8,7 +8,6 @@ use std::ptr;
 use std::str::Utf8Error;
 
 use libc::c_char;
-use sdc;
 
 use ffi::fwifc_get_last_error;
 use file::Channel;
@@ -39,8 +38,6 @@ pub enum Error {
     Nul(NulError),
     /// A runtime error on the part of sdfifc.
     Runtime(String),
-    /// A wrapper around `sdc::Error`.
-    Sdc(sdc::Error),
     /// Either zero or more than one reference peak.
     NeedSingleReferencePeak(usize),
     /// A wrapper around `std::str::Utf8Error`.
@@ -91,7 +88,6 @@ impl error::Error for Error {
             Error::NotImplemented(_) => "not implemented",
             Error::Nul(ref err) => err.description(),
             Error::Runtime(_) => "runtime error",
-            Error::Sdc(ref err) => err.description(),
             Error::Utf8(ref err) => err.description(),
             Error::UnknownCode(_) => "unknown code",
             Error::UnknownException(_) => "unknown exception",
@@ -126,7 +122,6 @@ impl fmt::Display for Error {
             Error::NotImplemented(ref msg) => write!(f, "Not implemented: {}", msg),
             Error::Nul(ref err) => write!(f, "Nul error: {}", err),
             Error::Runtime(ref msg) => write!(f, "Runtime error: {}", msg),
-            Error::Sdc(ref err) => write!(f, "Sdc error: {}", err),
             Error::Utf8(ref err) => write!(f, "Utf8 error: {}", err),
             Error::UnknownCode(code) => write!(f, "Unknown code: {}", code),
             Error::UnknownException(ref msg) => write!(f, "Unknown exception: {}", msg),
@@ -144,12 +139,6 @@ impl From<io::Error> for Error {
 impl From<NulError> for Error {
     fn from(err: NulError) -> Error {
         Error::Nul(err)
-    }
-}
-
-impl From<sdc::Error> for Error {
-    fn from(err: sdc::Error) -> Error {
-        Error::Sdc(err)
     }
 }
 

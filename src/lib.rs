@@ -14,7 +14,6 @@ extern crate libc;
 #[macro_use]
 extern crate log;
 extern crate peakbag;
-extern crate sdc;
 
 macro_rules! sdftry {
     ($expr:expr) => {{

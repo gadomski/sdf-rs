@@ -1,14 +1,12 @@
 //! Convert sdf files to other formats.
 
 use std::iter::repeat;
-use std::path::Path;
 
 use peakbag::{PeakDetector, Peak};
-use sdc;
 
 use Result;
 use error::Error;
-use file::{Block, Channel, File, FileInfo, Record};
+use file::{Block, Channel, FileInfo, Record};
 
 const HIGH_WIDTH: usize = 2;
 const HIGH_FLOOR: u16 = 15;
@@ -145,58 +143,6 @@ pub struct Point {
     pub peak: Peak<u16>,
     /// Was this point collected on the high channel?
     pub high_channel: bool,
-}
-
-impl File {
-    /// Writes all points from an .sdf file to an .sdc file.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// use sdf::file::File;
-    /// File::convert("110630_174316.sdf", "110630_174316.sdc").unwrap();
-    /// ```
-    pub fn convert<T: Into<Vec<u8>>, P: AsRef<Path>>(sdf_path: T, sdc_path: P) -> Result<()> {
-        let mut sdf_file = try!(File::open(sdf_path));
-        let ref file_info = try!(sdf_file.info());
-        let mut sdc_file = try!(sdc::Writer::from_path(sdc_path));
-        for (i, record) in sdf_file.into_iter().enumerate() {
-            let points = match discretize(&record, file_info) {
-                Ok(points) => points,
-                Err(Error::NeedSingleReferencePeak(_)) => {
-                    warn!("No reference peak detected for pulse {}, skipping", i);
-                    continue;
-                }
-                Err(err) => return Err(err),
-            };
-            for p in points {
-                let ref point = sdc::Point {
-                    time: p.time,
-                    range: p.range,
-                    theta: p.theta,
-                    x: p.x,
-                    y: p.y,
-                    z: p.z,
-                    amplitude: p.peak.amplitude,
-                    // FIXME actually calculate this value
-                    width: 1,
-                    target_type: sdc::TargetType::Peak,
-                    // Riegl one-indexes its target counts. Bah.
-                    target: p.target,
-                    num_target: p.num_target,
-                    // FIXME I have no idea what this means
-                    rg_index: 1,
-                    facet_number: p.facet as u8,
-                    high_channel: p.high_channel,
-                    class_id: None,
-                    rho: None,
-                    reflectance: None,
-                };
-                try!(sdc_file.write_point(point));
-            }
-        }
-        Ok(())
-    }
 }
 
 #[cfg(test)]
