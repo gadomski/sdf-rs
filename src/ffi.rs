@@ -19,7 +19,7 @@ pub struct fwifc_sbl_t {
 }
 
 #[link(name="sdfifc")]
-extern {
+extern "C" {
     pub fn fwifc_open(path: *const c_char, file: *mut fwifc_file) -> i32;
     pub fn fwifc_close(file: fwifc_file) -> i32;
     pub fn fwifc_get_library_version(api_major: *mut uint16_t,

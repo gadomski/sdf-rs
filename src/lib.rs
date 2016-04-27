@@ -64,7 +64,10 @@ pub fn library_version() -> Result<LibraryVersion> {
         let mut api_minor = 0u16;
         let mut build_version: *const c_char = ptr::null_mut();
         let mut build_tag: *const c_char = ptr::null_mut();
-        sdftry!(ffi::fwifc_get_library_version(&mut api_major, &mut api_minor, &mut build_version, &mut build_tag));
+        sdftry!(ffi::fwifc_get_library_version(&mut api_major,
+                                               &mut api_minor,
+                                               &mut build_version,
+                                               &mut build_tag));
         Ok(LibraryVersion {
             api_major: api_major,
             api_minor: api_minor,

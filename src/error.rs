@@ -115,10 +115,10 @@ impl fmt::Display for Error {
             Error::InvalidChannel(u8) => write!(f, "Invalid channel: {}", u8),
             Error::MissingChannel(ref channel) => write!(f, "Missing channel: {}", channel),
             Error::MissingIndex(ref msg) => write!(f, "Missing index: {}", msg),
-            Error::NeedSingleReferencePeak(n) =>
-                write!(f, "Wanted one reference peak, got {}", n),
-            Error::NoCalibrationTableForChannel(channel) =>
-                write!(f, "No calibration table for channel: {}", channel),
+            Error::NeedSingleReferencePeak(n) => write!(f, "Wanted one reference peak, got {}", n),
+            Error::NoCalibrationTableForChannel(channel) => {
+                write!(f, "No calibration table for channel: {}", channel)
+            }
             Error::NotImplemented(ref msg) => write!(f, "Not implemented: {}", msg),
             Error::Nul(ref err) => write!(f, "Nul error: {}", err),
             Error::Runtime(ref msg) => write!(f, "Runtime error: {}", msg),
