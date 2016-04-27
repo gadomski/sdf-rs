@@ -3,7 +3,7 @@
 use libc::{c_char, c_double, uint16_t, uint32_t};
 
 #[allow(non_camel_case_types)]
-enum fwifc_file_t {}
+pub enum fwifc_file_t {}
 
 #[allow(non_camel_case_types)]
 pub type fwifc_file = *mut fwifc_file_t;
